@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Chord Humanizer Script</title>
+    <!-- Add Prism CSS and Theme -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-color-dark: #212121;
+            --text-color-dark: #dcdcdc;
+            --bg-color-light: #f9f9f9;
+            --text-color-light: #333;
+            --highlight-color: #ffa500;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1100px;
+            margin: 20px auto;
+            background-color: var(--bg-color-light);
+            color: var(--text-color-light);
+        }
+        header {
+            background-color: var(--bg-color-light);
+            text-align: center;
+            padding: 20px;
+            height: auto;
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+        }
+        header img {
+            height: 50px;
+            display: block;
+            margin: 0 auto;
+            transition: filter 0.3s ease;
+        }
+        header img:hover {
+            filter: brightness(1.5);
+        }
+        .header-button {
+            background-color: var(--bg-color-light);
+            color: var(--text-color-light);
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            display: block;
+            margin: 10px auto;
+            transition: color 0.3s ease;
+        }
+        .header-button:hover {
+            color: #777;
+        }
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 50px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: var(--text-color-light);
+        }
+        .divider {
+            width: 90%;
+            margin: 0 auto;
+            border-top: 1px solid #777;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        pre {
+            border-radius: 6px;
+            padding: 1em;
+            margin: 1em 0;
+            overflow: auto;
+            background-color: #f0f0f0;
+        }
+        code {
+            font-family: 'Consolas', 'Monaco', 'Andale Mono', monospace;
+            color: grey;
+        }
+        a {
+            color: var(--highlight-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        a:hover {
+            color: #ffcc00;
+            text-decoration: underline;
+        }
+        a:visited {
+            color: #ff8c00;
+        }
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .copy-button {
+            background-color: var(--bg-color-light);
+            color: var(--text-color-light);
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .copy-button:hover {
+            color: #777;
+        }
+        .blog-content {
+            margin: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .theme-toggle {
+                top: 10px;
+                right: 10px;
+                font-size: 14px;
+            }
+
+            header {
+                padding: 10px;
+            }
+
+            .header-button {
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header Section -->
+<header>
+    <img id="logo" src="https://raw.githubusercontent.com/frankiefaruk/logo/refs/heads/main/frank_faruk_logo_grey.svg" alt="Frank Faruk Logo">
+    <button class="header-button" onclick="window.location.href='https://frankfaruksampling.site'">FRANK FARUK SAMPLING</button>
+    <hr class="divider">
+    <button class="header-button" onclick="window.location.href='https://raw.githubusercontent.com/frankiefaruk/Logic-Pro-Script-MIDI-Chord-Humaniser/refs/heads/main/script'">
+        <img id="code-icon" src="https://img.icons8.com/ios-filled/50/000000/code.png" alt="Code Icon" style="width: 24px; height: 24px; vertical-align: middle;">
+    </button>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <img id="theme-icon" src="https://img.icons8.com/ios-glyphs/30/000000/sun--v1.png" alt="Light Mode Icon" style="width: 20px; height: 20px; vertical-align: middle;">
+    </button>
+</header>
+
+<!-- Content Section -->
+<div class="blog-content">
+    <h1>MIDI Chord Humanizer Script</h1>
+    <p>This script is designed to process MIDI events and play chords with humanized timing and velocity variations. It includes functionality to handle note-on and note-off events, play chords with random inversions, and apply humanization to the timing and velocity of notes.</p>
+    <h2>Features</h2>
+    <ul>
+        <li><strong>Chord Structures:</strong> Defines major and minor chord structures for various notes.</li>
+        <li><strong>Humanization Settings:</strong> Configurable settings for maximum note delay and velocity variation.</li>
+        <li><strong>Active Notes Management:</strong> Keeps track of currently playing notes and releases them when necessary.</li>
+        <li><strong>MIDI Event Handling:</strong> Processes note-on and note-off events, and passes through non-note MIDI events.</li>
+        <li><strong>Humanized Chord Playing:</strong> Plays chords with slight timing differences and velocity variations to mimic human playing.</li>
+    </ul>
+    <h2>Configuration</h2>
+    <h3>Chord Types</h3>
+    <pre><code class="language-javascript">const CHORD_TYPES = {
+    'C': [0, 3, 7],  // C major
+    'D': [0, 3, 7],  // D minor
+    'E': [0, 3, 7],  // E minor
+    'F': [0, 4, 7],  // F major
+    'G': [0, 4, 7],  // G major
+    'A': [0, 3, 7],  // A minor
+    'B': [0, 3, 6],  // B diminished
+    'C#': [0, 4, 7], // C# major
+    'D#': [0, 4, 7], // D# major
+    'F#': [0, 4, 7], // F# major
+    'G#': [0, 4, 7], // G# major
+    'A#': [0, 4, 7]  // A# major
+};</code></pre>
+    <h3>Humanization Settings</h3>
+    <pre><code class="language-javascript">const HUMANIZE_CONFIG = {
+    maxNoteDelay: 20,  // Maximum delay between notes in a chord (in milliseconds)
+    velocityRange: 10  // Maximum velocity variation
+};</code></pre>
+    <h2>Functions</h2>
+    <ul>
+        <li><code>HandleMIDI(event)</code>: Handles MIDI events. If the event is a note-on, it plays the corresponding chord with humanization. If the event is a note-off, it releases the active notes. Non-note MIDI events are passed through.</li>
+        <li><code>getNoteNameFromPitch(pitch)</code>: Converts a MIDI pitch to a note name.</li>
+        <li><code>getHumanizedVelocity(baseVelocity)</code>: Generates a humanized velocity by adding a random variation to the base velocity.</li>
+        <li><code>playNote(pitch, velocity, channel, delay = 0)</code>: Plays a single note with optional delay and humanized velocity.</li>
+        <li><code>playHumanizedChord(noteName, rootNote, velocity, channel)</code>: Plays a chord with humanized timing and velocity variations.</li>
+        <li><code>releaseActiveNotes()</code>: Releases all currently playing notes.</li>
+        <li><code>Reset()</code>: Releases all active notes and resets the script.</li>
+        <li><code>ProcessMIDI()</code>: An empty function required for Logic Pro scripts.</li>
+    </ul>
+    <h2>Usage</h2>
+    <ol>
+        <li><strong>Include the Script:</strong> Integrate this script into your MIDI processing environment.</li>
+        <li><strong>Configure Chords and Humanization:</strong> Modify the <code>CHORD_TYPES</code> and <code>HUMANIZE_CONFIG</code> objects as needed.</li>
+        <li><strong>Handle MIDI Events:</strong> Use the <code>HandleMIDI</code> function to process incoming MIDI events.</li>
+    </ol>
+    <p>This script is designed to be flexible and can be customized to fit various musical styles and preferences. Enjoy creating more human-like MIDI performances!</p>
+</div>
+
+<!-- Footer Section -->
+<hr class="divider">
+<footer style="text-align: center; margin: 20px 0; color: var(--text-color-light); font-size: 14px;">
+    Design by ChatGPT / Claude.ai / Gemini and <a href="https://frankfaruksampling.site" target="_blank">Frank Faruk Sampling</a> 
+</footer>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script>
+    function copyToClipboard(selector) {
+        const codeBlock = document.querySelector(selector);
+        const textArea = document.createElement('textarea');
+        textArea.value = codeBlock.textContent;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            alert('Code copied to clipboard!');
+        } catch (err) {
+            console.error('Failed to copy text', err);
+        }
+        document.body.removeChild(textArea);
+    }
+
+    function toggleTheme() {
+        const root = document.documentElement;
+        const themeToggle = document.querySelector('.theme-toggle');
+        const logo = document.getElementById('logo');
+        const codeIcon = document.getElementById('code-icon');
+        const themeIcon = document.getElementById('theme-icon');
+        const isLightMode = getComputedStyle(root).getPropertyValue('--bg-color-light').trim() === '#f9f9f9';
+
+        if (isLightMode) {
+            root.style.setProperty('--bg-color-light', '#212121');
+            root.style.setProperty('--text-color-light', '#dcdcdc');
+            themeIcon.src = 'https://img.icons8.com/ios-glyphs/30/dcdcdc/moon-symbol.png';
+            themeIcon.alt = 'Dark Mode Icon';
+            logo.src = 'https://raw.githubusercontent.com/frankiefaruk/logo/refs/heads/main/frank_faruk_logo_white.svg';
+            codeIcon.src = 'https://img.icons8.com/ios-filled/50/dcdcdc/code.png';
+        } else {
+            root.style.setProperty('--bg-color-light', '#f9f9f9');
+            root.style.setProperty('--text-color-light', '#333');
+            themeIcon.src = 'https://img.icons8.com/ios-glyphs/30/000000/sun--v1.png';
+            themeIcon.alt = 'Light Mode Icon';
+            logo.src = 'https://raw.githubusercontent.com/frankiefaruk/logo/refs/heads/main/frank_faruk_logo_grey.svg';
+            codeIcon.src = 'https://img.icons8.com/ios-filled/50/000000/code.png';
+        }
+    }
+</script>
+</body>
+</html>
