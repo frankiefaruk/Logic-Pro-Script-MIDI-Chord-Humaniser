@@ -1,0 +1,129 @@
+var NeedsTimingInfo = true;
+
+// Define chord structures for major and minor chords
+const CHORD_TYPES = {
+    'C': [0, 4, 7],     // C major
+    'D': [0, 3, 7],     // D minor
+    'E': [0, 3, 7],     // E minor
+    'F': [0, 4, 7],     // F major
+    'G': [0, 4, 7],     // G major
+    'A': [0, 3, 7],     // A minor
+    'B': [0, 3, 6],     // B diminished
+    'C#': [0, 4, 7],    // C# major
+    'D#': [0, 4, 7],    // D# major
+    'F#': [0, 4, 7],    // F# major
+    'G#': [0, 4, 7],    // G# major
+    'A#': [0, 4, 7]     // A# major
+};
+
+// Humanization settings (in milliseconds)
+const HUMANIZE_CONFIG = {
+    maxNoteDelay: 20,     // Maximum delay between notes in a chord
+    velocityRange: 10     // Maximum velocity variation
+};
+
+var activeNotes = new Set();
+
+function HandleMIDI(event) {
+    if (event instanceof NoteOn) {
+        // Get the root note and its octave
+        const rootNote = event.pitch;
+        const noteName = getNoteNameFromPitch(rootNote);
+        
+        // Release any currently playing notes
+        releaseActiveNotes();
+        
+        // Play the corresponding chord with humanization
+        playHumanizedChord(noteName, rootNote, event.velocity, event.channel);
+    }
+    else if (event instanceof NoteOff) {
+        // Handle note off events
+        if (activeNotes.has(event.pitch)) {
+            releaseActiveNotes();
+        }
+    }
+    else {
+        // Pass through all non-note MIDI events
+        event.send();
+    }
+}
+
+function getNoteNameFromPitch(pitch) {
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    return noteNames[pitch % 12];
+}
+
+function getRandomInversion(notes, maxInversion = 2) {
+    const inversion = Math.floor(Math.random() * (maxInversion + 1)); // 0 = root, 1 = first, 2 = second
+    if (inversion === 0) return notes;
+    
+    const inverted = [...notes];
+    for (let i = 0; i < inversion; i++) {
+        inverted[i] = inverted[i] + 12; // Move up one octave
+    }
+    return inverted.sort((a, b) => a - b);
+}
+
+function getHumanizedVelocity(baseVelocity) {
+    const variation = Math.random() * HUMANIZE_CONFIG.velocityRange - (HUMANIZE_CONFIG.velocityRange / 2);
+    return Math.min(127, Math.max(1, Math.round(baseVelocity + variation)));
+}
+
+function playNote(pitch, velocity, channel, delay = 0) {
+    // Ensure pitch is within MIDI range (0-127)
+    if (pitch < 0 || pitch > 127) return;
+    
+    const note = new NoteOn();
+    note.pitch = pitch;
+    note.velocity = getHumanizedVelocity(velocity);
+    note.channel = channel;
+    
+    if (delay > 0) {
+        note.sendAfterMilliseconds(delay);
+    } else {
+        note.send();
+    }
+    
+    activeNotes.add(pitch);
+}
+
+function playHumanizedChord(noteName, rootNote, velocity, channel) {
+    const intervals = CHORD_TYPES[noteName];
+    
+    if (!intervals) {
+        // If no chord type is defined, just play the single note
+        playNote(rootNote, velocity, channel);
+        return;
+    }
+    
+    // Convert intervals to actual notes
+    let notes = intervals.map(interval => rootNote + interval);
+    
+    // Apply random inversion
+    notes = getRandomInversion(notes);
+    
+    // Play each note with slight timing differences
+    notes.forEach((pitch, index) => {
+        const delay = index * (Math.random() * HUMANIZE_CONFIG.maxNoteDelay);
+        playNote(pitch, velocity, channel, delay);
+    });
+}
+
+function releaseActiveNotes() {
+    activeNotes.forEach(pitch => {
+        const note = new NoteOff();
+        note.pitch = pitch;
+        note.velocity = 0;
+        note.channel = 1;
+        note.send();
+    });
+    activeNotes.clear();
+}
+
+function Reset() {
+    releaseActiveNotes();
+}
+
+function ProcessMIDI() {
+    // Required empty function for Logic Pro scripts
+}
